@@ -227,20 +227,21 @@ def embed_toc(pdfpath, toc_entries, newfile=''):
 
 
 def edit_txtfile(txtfile='outline.txt'):
-    editor = os.environ.get('EDITOR', 'notepad' if os.name == 'nt' else 'vim')
+    editor = os.environ.get('EDITOR', 'notepad' if os.name == 'nt' else 'vi')
     subprocess.run([editor, txtfile])
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog='pdftoc')
-    parser.add_argument("filename")
-    parser.add_argument('-s', '--straight', action='store_true', help="don't edit; write toc straight to pdf")
+    parser = argparse.ArgumentParser(prog='pdfao')
+    parser.add_argument("filename", help='input pdf')
+    parser.add_argument('-s', '--straight', action='store_true', help="write toc straight to pdf; skip editing")
     parser.add_argument('-o', '--out', type=str, metavar='<path>', help='write changes to new pdf')
     parser.add_argument('-mp', '--multiprocess', type=int, metavar='<n>', help='spread job over n processes (faster on linux)', default=1)
     parser.add_argument('-e', '--edit', action='store_true', help='edit pdf toc')
     parser.add_argument('-se', '--superedit', action='store_true', help='edit pdf toc (more attibutes available)')
     parser.add_argument('-i', '--infile', type=str, metavar='<file>', help='write toc from file to pdf')
-    parser.add_argument('-t', '--tablevel', type=int, metavar='<n>', help='tab = n levels (default 2)', default=2)
+    parser.add_argument('-t', '--tablevel', type=int, metavar='<n>', help='tab = n toc nesting levels (default 2)', default=2)
     parser.add_argument('--sioyek', type=str, metavar='<path>', help='for users of the Sioyek pdf viewer')
+    parser.add_argument('--version', action='version', version='%(prog)s 0.1.0')
 
     args = parser.parse_args()
 
