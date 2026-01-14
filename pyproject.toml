@@ -1,0 +1,19 @@
+[project]
+name = "pdf-auto-outline"
+version = "0.1.0"
+description = "Automatically generate and edit PDF ToC / outline"
+readme = "README.md"
+authors = [
+    { name = "Rossikos", email = "216631970+rossikos@users.noreply.github.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "pymupdf-layout>=1.26.6",
+]
+
+[project.scripts]
+pdf-auto-outline = "pdf_auto_outline:main"
+
+[build-system]
+requires = ["uv_build>=0.9.7,<0.10.0"]
+build-backend = "uv_build"
