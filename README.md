@@ -36,7 +36,7 @@ Generate toc and edit before saving:
 Generate and save to new pdf:
 `pdfao paper.pdf -o new.pdf`
 
-Edit exiting pdf toc
+Edit exiting pdf toc:
 `pdfao paper.pdf -e`
 
 A save toc to new pdf from file:
@@ -52,9 +52,5 @@ new_command _gen_toc pdfao "%{file_path}" --sioyek path/to/sioyek -mp 4
 new_command _edit_toc pdfao path/to/pdfao.py "%{file_path}" --sioyek path/to/sioyek -se
 ```
 
-If you don't wish to install from PyPI, download source and use
-
-`python3 -m path/to/src/pdf_auto_outline`
-
-in place of `pdfao`.
+If you don't wish to install from PyPI, download source and use `python3 -m path/to/src/pdf_auto_outline` in place of `pdfao`.
 
