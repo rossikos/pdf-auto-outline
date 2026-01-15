@@ -28,7 +28,7 @@ options:
   --version             show program's version number and exit
 ```
 
-# Examples
+### Examples
 
 Generate toc and edit before saving:
 `pdfao paper.pdf`
