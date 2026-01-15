@@ -96,7 +96,6 @@ def generate_toc_nnet(pdfpath, worker_cnt=3) -> list:
         log('\nCancelled')
         exit()
 
-    log('')
 
     return [j for i in pg_nums for j in results[i]]
 
@@ -214,7 +213,6 @@ def parse_txtfile(txtfile='outline.txt', tablevel=2) -> list:
     return toc_entries
 
 def embed_toc(pdfpath, toc_entries, newfile=''):
-    print(len(toc_entries))
     doc = pymupdf.open(pdfpath)
     doc.set_toc(toc_entries, collapse=2)
     if newfile:
@@ -247,8 +245,13 @@ def main():
 
     if args.sioyek:
         from sioyek.sioyek import Sioyek
-        sioyek_path = args.sioyek[0]
-        SIOYEK = Sioyek(sioyek_path)
+        global SIOYEK
+        SIOYEK = Sioyek(args.sioyek)
+        if args.out:
+            args.out = os.path.join(
+                    os.path.dirname(args.filename),
+                    args.out
+                )
         # local_db = args.sioyek[1]
         # shared_db = args.sioyek[2]
         # pdf_path = args.sioyek[3]
@@ -267,6 +270,7 @@ def main():
         start = perf_counter()
         toc_entries = generate_toc_nnet(args.filename, args.multiprocess)
         end = perf_counter()
+        log('')
         log(f"finished in {end - start:<4.1f} s")
         toc_entries = align_toc_lvls(toc_entries)
         if args.straight:
