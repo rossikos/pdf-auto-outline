@@ -100,72 +100,52 @@ def generate_toc_nnet(pdfpath, worker_cnt=3) -> list:
     return [j for i in pg_nums for j in results[i]]
 
 def align_toc_lvls(toc_entries: list) -> list:
-    # TODO: fix this spaghetti
     import re
-    def act(lvl, current, prev): # cur prev expected lvl
-        # if current == prev - 1: # current is parent
-        if current == prev[0]: # current is sibling
-            return lvl
-        elif current == 'p5':
-            return lvl + 1
-        elif e[current] < prev[1]: # current is parent
-            return e[current]
-            # return max(1, lvl - 1)
+    def act(current): # cur prev expected lvl
+        if current == d['prev_name']: # current is sibling
+            pass
+        elif current == 'p5': # current is figure/table type
+            d['lvl'] += 1
+        elif e[current] < d['prev_lvl']: # current is parent
+            d['lvl'] = e[current]
         else: # e[current] > prev[1]: # current is child
-            e[current] = min(lvl + 1, e[current])
-            return min(lvl + 1, e[current])
-        # else: #e[current] == prev: # current is sibling
-        #     return lvl
+            e[current] = min(d['lvl'] + 1, e[current])
+            d['lvl'] = min(d['lvl'] + 1, e[current])
+
+        d['prev_name'] = current
+        d['prev_lvl'] = e[current]
+        toc_entries[i-d['removed']][0] = d['lvl']
 
     p1 = re.compile(r'^[A-Z\d]')
-    p2 = re.compile(r'^(Contents)|(Chapter)|(Appendix)|(Index)|(Bibliograph)|(Preface)')
-    p3 = re.compile(r'^([IVXC\d])+\.[IVXC\d]\.? \w')
-    p4 = re.compile(r'^([AIVXC\d]+\.){2}[IVXC\d]\.? \w')
-    p5 = re.compile(r'^(Fig(ure)?\.?)|(Table\.? [\dIVXC]+)')
-    p6 = re.compile(r'''\d?\s?(Introduction)|((Materials and )?Methods)|(Results)|
-                    (Discussion)|(References)|(Summary)|(Conclusion)|(Acknowledgements)
-                    ''', re.IGNORECASE)
-    p7 = re.compile(r'^\d?\s?[A-Z ]{2,}') 
+    patterns = (
+        re.compile(r'^(Contents)|(Chapter)|(Appendix)|(Index)|(Bibliography)|(Preface)'),
+        re.compile(r'^([IVXC\d])+\.[IVXC\d]\.? \w'),
+        re.compile(r'^([AIVXC\d]+\.){2}[IVXC\d]\.? \w'),
+        re.compile(r'^(Fig(ure)?\.?)|(Table\.? [\dIVXC]+)', re.IGNORECASE),
+        re.compile(r'''\d?\s?(Introduction)|((Materials? and )?Methods)|(Results)|
+                        (Discussion)|(References)|(Summary)|(Conclusion)|(Acknowledgements)
+                        ''', re.IGNORECASE),
+        re.compile(r'^\d?\s?[A-Z ]{2,}'),
+    )
 
+    # expected nesting levels
     e = {'p1': 1, 'p2': 1, 'p3': 2, 'p4': 3, 'p5': 5, 'p6': 1, 'p7': 1, 'l': 2,}
+    # line status
+    d = {'lvl': 1, 'prev_name': 'p1', 'prev_lvl': 1, 'titles': set(), 'removed': 0}
 
     log('aligning levels..')
-    lvl, prev, titles, removed = 1, ('p1', 1), set(), 0
 
     for i in range(1, len(toc_entries)):
-        title = toc_entries[i-removed][1]
-        if (not p1.match(title)) or len(title) < 4 or title in titles: #skip
-            toc_entries.pop(i-removed)
-            removed += 1
-        elif p2.match(title):
-            lvl = act(lvl, 'p2', prev)
-            toc_entries[i-removed][0] = lvl
-            prev = ('p2', e['p2'])
-        elif p7.match(title):
-            lvl = act(lvl, 'p7', prev)
-            toc_entries[i-removed][0] = lvl
-            prev = ('p7', e['p7'])
-        elif p6.match(title):
-            lvl = act(lvl, 'p6', prev)
-            toc_entries[i-removed][0] = lvl
-            prev = ('p6', e['p6'])
-        elif p3.match(title):
-            lvl = act(lvl, 'p3', prev)
-            toc_entries[i-removed][0] = lvl
-            prev = ('p3', e['p3'])
-        elif p4.match(title):
-            lvl = act(lvl, 'p4', prev)
-            toc_entries[i-removed][0] = lvl
-            prev = ('p4', e['p4'])
-        elif p5.match(title):
-            lvl = act(lvl, 'p5', prev)
-            toc_entries[i-removed][0] = lvl
-            prev = ('p5', e['p5'])
+        title = toc_entries[i-d['removed']][1]
+        if (not p1.match(title)) or len(title) < 4 or title in d['titles']: #skip
+            toc_entries.pop(i-d['removed'])
+            d['removed'] += 1
+        elif (name := next((idi for idi, i in enumerate(patterns) if i.match(title)), None)):
+            act(f'p{name+2}')
         else:
-            titles.add(title)
-            lvl = act(lvl, 'l', prev)
-            toc_entries[i-removed][0] = lvl
-            prev = ('l', e['l'])
+            d['titles'].add(title)
+            act('l')
+
     return toc_entries
 
 def generate_txtfile(toc_entries, txtfile='outline.txt') -> str:
@@ -222,10 +202,13 @@ def embed_toc(pdfpath, toc_entries, newfile=''):
         doc.saveIncr()
         log(f"toc saved to '{pdfpath}'")
 
-
+def get_toc_custom(doc) -> list:
+    toc_entries = [[*i[:3], i[3].get('to')] for i in doc.get_toc(False)]
+    return toc_entries
 
 def edit_txtfile(txtfile='outline.txt'):
-    editor = os.environ.get('EDITOR', 'notepad' if os.name == 'nt' else 'vi')
+    # editor = os.environ.get('EDITOR', 'notepad' if os.name == 'nt' else 'vi')
+    editor = os.environ.get('EDITOR', 'start' if os.name == 'nt' else 'xdg-open')
     subprocess.run([editor, txtfile])
 
 def main():
@@ -259,7 +242,11 @@ def main():
 
     if args.edit or args.superedit:
         doc = pymupdf.Document(args.filename)
-        generate_txtfile(doc.get_toc(not args.superedit))
+        # generate_txtfile(doc.get_toc(not args.superedit))
+        if args.superedit:
+            generate_txtfile(doc.get_toc(False))
+        else:
+            generate_txtfile(get_toc_custom(doc))
         edit_txtfile()
         toc_entries = parse_txtfile(tablevel=args.tablevel)
         embed_toc(args.filename, toc_entries, args.out)
