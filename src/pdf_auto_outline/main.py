@@ -242,7 +242,6 @@ def main():
 
     if args.edit or args.superedit:
         doc = pymupdf.Document(args.filename)
-        # generate_txtfile(doc.get_toc(not args.superedit))
         if args.superedit:
             generate_txtfile(doc.get_toc(False))
         else:
