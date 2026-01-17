@@ -222,7 +222,7 @@ def main():
     parser.add_argument('-i', '--infile', type=str, metavar='<file>', help='write toc from file to pdf')
     parser.add_argument('-t', '--tablevel', type=int, metavar='<n>', help='tab = n toc nesting levels (default 2)', default=2)
     parser.add_argument('--sioyek', type=str, metavar='<path>', help='for users of the Sioyek pdf viewer')
-    parser.add_argument('--version', action='version', version='%(prog)s 0.1.1')
+    parser.add_argument('--version', action='version', version='%(prog)s 0.1.2')
 
     args = parser.parse_args()
 
