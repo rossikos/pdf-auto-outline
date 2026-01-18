@@ -154,6 +154,8 @@ def generate_txtfile(toc_entries, txtfile='outline.txt') -> str:
     ============================================================
                      TABLE OF CONTENTS OUTLINE
     4spaces/lvl text  |  pg#  |  {details dictionary} OR y-coord
+
+       Type 'C' as the first character of this file to cancel
     ============================================================
 
     """)
@@ -173,8 +175,11 @@ def generate_txtfile(toc_entries, txtfile='outline.txt') -> str:
 def parse_txtfile(txtfile='outline.txt', tablevel=2) -> list:
     toc_entries = []
     with open(txtfile) as f:
-        if f.read(1) == '=':
-            lines = f.readlines()[5:]
+        if (c := f.read(1)) == 'C':
+            log('Outline not written')
+            exit()
+        elif c == '=':
+            lines = f.readlines()[7:]
         else: lines = f.read()
 
         for i in lines:
@@ -208,8 +213,13 @@ def get_toc_custom(doc) -> list:
 
 def edit_txtfile(txtfile='outline.txt'):
     # editor = os.environ.get('EDITOR', 'notepad' if os.name == 'nt' else 'vi')
-    editor = os.environ.get('EDITOR', 'start' if os.name == 'nt' else 'xdg-open')
-    subprocess.run([editor, txtfile])
+    # editor = os.environ.get('EDITOR', 'start' if os.name == 'nt' else 'xdg-open')
+    name = os.name
+    if name == 'nt':
+        subprocess.run(['start', '/WAIT', txtfile], shell=True)
+    else: # name == 'posix':
+        editor = os.environ.get('EDITOR', 'vi')  
+        subprocess.run([editor, txtfile])
 
 def main():
     parser = argparse.ArgumentParser(prog='pdfao')
