@@ -28,6 +28,9 @@ options:
   --version             show program's version number and exit
 ```
 
+> [!NOTE]
+> Multiprocessing on Windows and MacOS is considerably slower than on Linux. Users are encouraged to test and see what works best for them.
+
 ### Examples
 
 Generate toc and edit before saving:
