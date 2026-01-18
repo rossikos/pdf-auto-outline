@@ -52,7 +52,7 @@ Example commands; add to `prefs_user.config`.
 
 ```
 new_command _gen_toc pdfao "%{file_path}" --sioyek path/to/sioyek -mp 4
-new_command _edit_toc pdfao path/to/pdfao.py "%{file_path}" --sioyek path/to/sioyek -e
+new_command _edit_toc pdfao %{file_path}" --sioyek path/to/sioyek -e
 ```
 
 If you don't wish to install from PyPI, download source and use `python3 -m path/to/src/pdf_auto_outline` in place of `pdfao`.
