@@ -45,6 +45,29 @@ Edit exiting pdf toc:
 A save toc to new pdf from file:
 `pdfao paper.pdf -o new.pdf -i outline.txt`
 
+### Editing
+
+The edit command opens the TOC in the OS default editor (result of 'start' command on Windows and 'EDITOR' environment variable on MacOS and Linux). The file schema is something like this:
+
+```
+Title 1  |  1
+    Title 2  |  2  |  *
+                 ^^^^^^
+				 optional		
+```
+The essential parts of each line are:
+- Indentation - 4 space characters per nesting level (or use tabs with the -t flag).
+- Title text
+- Delimiter - '  |  ' (vertical bar with 2 spaces padding on each side)
+- Page number
+
+The optional part can be one of:
+```
+  |  None                  	same as not including it   
+  |  241.2					y-ordinate 
+  |  Point(72.0, 363.9)		x and y coords
+  |  {<dictionary>}			dictionary with more attributes for the ToC entry
+```
 
 ## For Sioyek Users
 
