@@ -159,7 +159,9 @@ def generate_txtfile(toc_entries, txtfile='outline.txt') -> str:
     ============================================================
 
     """)
-    if len(toc_entries[0]) > 3:
+    if not toc_entries:
+        pass
+    elif len(toc_entries[0]) > 3:
         txt += '\n'.join(f"{' '*4 * (i[0] - 1)}{i[1]}  |  {i[2]}  |  {i[3]}" 
                         for i in toc_entries)
     else:
@@ -208,7 +210,7 @@ def embed_toc(pdfpath, toc_entries, newfile=''):
         log(f"toc saved to '{pdfpath}'")
 
 def get_toc_custom(doc) -> list:
-    toc_entries = [[*i[:3], i[3].get('to')] for i in doc.get_toc(False)]
+    toc_entries = [[*i[:3], i[3].get('to')[1]] for i in doc.get_toc(False)]
     return toc_entries
 
 def edit_txtfile(txtfile='outline.txt'):
