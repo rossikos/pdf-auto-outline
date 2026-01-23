@@ -1,10 +1,10 @@
 import pymupdf.layout
-from pymupdf import Point
 from time import perf_counter
 from multiprocessing import Pool
 import os
 import subprocess
 import argparse
+import tempfile
 
 SIOYEK = None
 
@@ -148,7 +148,12 @@ def align_toc_lvls(toc_entries: list) -> list:
 
     return toc_entries
 
-def generate_txtfile(toc_entries, txtfile='outline.txt') -> str:
+def get_tmpfile():
+    return tempfile.NamedTemporaryFile(
+            mode='w+', encoding='utf-8', delete=False, suffix='.txt'
+            )
+
+def generate_txtfile(toc_entries, txtfile=get_tmpfile()):
     import textwrap
     txt = textwrap.dedent("""\
     ============================================================
@@ -168,34 +173,37 @@ def generate_txtfile(toc_entries, txtfile='outline.txt') -> str:
         txt += '\n'.join(f"{' '*4 * (i[0] - 1)}{i[1]}  |  {i[2]}"
                         for i in toc_entries)
 
-    with open(txtfile, 'w', encoding='utf-8') as f:
-        f.write(txt)
+    txtfile.write(txt)
+    txtfile.flush()
+    txtfile.seek(0)
 
     return txtfile
 
 
-def parse_txtfile(txtfile='outline.txt', tablevel=2) -> list:
-    toc_entries = []
-    with open(txtfile) as f:
-        if (c := f.read(1)) == 'C':
-            log('Outline not written')
-            exit()
-        elif c == '=':
-            lines = f.readlines()[7:]
-        else: lines = f.read()
 
-        for i in lines:
-            i = i.replace('\t', '    '*tablevel)
-            lvl = (len(i) - len(i.lstrip())) // 4 + 1
-            a = i.lstrip().split('  |  ')
-            if len(a) < 3:
-                toc_entries.append(
-                        [lvl, a[0], int(a[1])] 
-                )
-            else:
-                toc_entries.append(
-                        [lvl, a[0], int(a[1]), eval(a[2])]
-                )
+def parse_txtfile(f, tablevel=2) -> list:
+    toc_entries = []
+    if (c := f.read(1)) == 'C':
+        log('Outline not written')
+        exit()
+    elif c == '=':
+        lines = f.readlines()[7:]
+    else: lines = f.read()
+
+    for i in lines:
+        i = i.replace('\t', '    '*tablevel)
+        lvl = (len(i) - len(i.lstrip())) // 4 + 1
+        a = i.lstrip().split('  |  ')
+        if len(a) < 3:
+            toc_entries.append(
+                    [lvl, a[0], int(a[1])] 
+            )
+        else:
+            toc_entries.append(
+                    [lvl, a[0], int(a[1]), eval(a[2])]
+            )
+    
+    f.close()
 
     return toc_entries
 
@@ -213,15 +221,12 @@ def get_toc_custom(doc) -> list:
     toc_entries = [[*i[:3], i[3].get('to')[1]] for i in doc.get_toc(False)]
     return toc_entries
 
-def edit_txtfile(txtfile='outline.txt'):
-    # editor = os.environ.get('EDITOR', 'notepad' if os.name == 'nt' else 'vi')
-    # editor = os.environ.get('EDITOR', 'start' if os.name == 'nt' else 'xdg-open')
-    name = os.name
-    if name == 'nt':
-        subprocess.run(['start', '/WAIT', txtfile], shell=True)
+def edit_txtfile(f):
+    if os.name == 'nt':
+        subprocess.run(['start', '/WAIT', f.name], shell=True)
     else: # name == 'posix':
         editor = os.environ.get('EDITOR', 'vi')  
-        subprocess.run([editor, txtfile])
+        subprocess.run([editor, f.name])
 
 def main():
     parser = argparse.ArgumentParser(prog='pdfao')
@@ -234,19 +239,19 @@ def main():
     parser.add_argument('-i', '--infile', type=str, metavar='<file>', help='write toc from file to pdf')
     parser.add_argument('-t', '--tablevel', type=int, metavar='<n>', help='tab = n toc nesting levels (default 2)', default=2)
     parser.add_argument('--sioyek', type=str, metavar='<path>', help='for users of the Sioyek pdf viewer')
-    parser.add_argument('--version', action='version', version='%(prog)s 0.1.5')
+    parser.add_argument('--version', action='version', version='%(prog)s 0.1.6')
 
     args = parser.parse_args()
+
+    if args.out:
+        args.out = os.path.join(
+                os.path.dirname(args.filename),
+                args.out)
 
     if args.sioyek:
         from sioyek.sioyek import Sioyek
         global SIOYEK
         SIOYEK = Sioyek(args.sioyek)
-        if args.out:
-            args.out = os.path.join(
-                    os.path.dirname(args.filename),
-                    args.out
-                )
         # local_db = args.sioyek[1]
         # shared_db = args.sioyek[2]
         # pdf_path = args.sioyek[3]
@@ -255,14 +260,15 @@ def main():
     if args.edit or args.superedit:
         doc = pymupdf.Document(args.filename)
         if args.superedit:
-            generate_txtfile(doc.get_toc(False))
+            f = generate_txtfile(doc.get_toc(False))
         else:
-            generate_txtfile(get_toc_custom(doc))
-        edit_txtfile()
-        toc_entries = parse_txtfile(tablevel=args.tablevel)
+            f = generate_txtfile(get_toc_custom(doc))
+        edit_txtfile(f)
+        toc_entries = parse_txtfile(f, args.tablevel)
         embed_toc(args.filename, toc_entries, args.out)
+        os.remove(f.name)
     elif args.infile:
-        toc_entries = parse_txtfile(args.infile, args.tablevel)
+        toc_entries = parse_txtfile(open(args.infile, encoding='utf-8'), args.tablevel)
         embed_toc(args.filename, toc_entries, args.out)
     else: # generate toc
         start = perf_counter()
@@ -274,10 +280,11 @@ def main():
         if args.straight:
             embed_toc(args.filename, toc_entries, args.out)
         else:
-            generate_txtfile(toc_entries)
-            edit_txtfile()
-            toc_entries = parse_txtfile(tablevel=args.tablevel)
+            f = generate_txtfile(toc_entries)
+            edit_txtfile(f)
+            toc_entries = parse_txtfile(f, args.tablevel)
             embed_toc(args.filename, toc_entries, args.out)
+            os.remove(f.name)
 
     # if args.sioyek and not args.out:
     #     to_hash = get_md5_hash(args.filename)
