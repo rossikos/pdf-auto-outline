@@ -1,6 +1,6 @@
 [project]
 name = "pdf-auto-outline"
-version = "0.1.5"
+version = "0.1.6"
 description = "Automatically generate and edit PDF table of contents / outline"
 readme = "README.md"
 authors = [
