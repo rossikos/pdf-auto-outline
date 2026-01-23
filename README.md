@@ -65,7 +65,6 @@ The optional part can be one of:
 ```
   |  None                  	same as not including it   
   |  241.2					y-ordinate 
-  |  Point(72.0, 363.9)		x and y coords
   |  {<dictionary>}			dictionary with more attributes for the ToC entry
 ```
 
@@ -75,8 +74,10 @@ Example commands; add to `prefs_user.config`.
 
 ```
 new_command _gen_toc pdfao "%{file_path}" --sioyek path/to/sioyek -mp 4
-new_command _edit_toc pdfao "%{file_path}" --sioyek path/to/sioyek -e
+new_command _edit_toc pdfao "%{file_path}"
 ```
+
+The sioyek library and flag are optional; they allow logging to the status bar. This is more useful for ToC generation where you may want a progress bar. 
 
 If you don't wish to install from PyPI, download source and use `python3 -m path/to/src/pdf_auto_outline` in place of `pdfao`.
 
