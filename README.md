@@ -74,7 +74,7 @@ Example commands; add to `prefs_user.config`.
 
 ```
 new_command _gen_toc pdfao "%{file_path}" --sioyek path/to/sioyek -mp 4
-new_command _edit_toc pdfao "%{file_path}"
+new_command _edit_toc pdfao "%{file_path}" -e
 ```
 
 The sioyek library and flag are optional; they allow logging to the status bar. This is more useful for ToC generation where you may want a progress bar. 
