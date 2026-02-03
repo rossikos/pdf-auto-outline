@@ -256,7 +256,7 @@ def main():
     parser.add_argument('-t', '--tablevel', type=int, metavar='<n>', help='tab = n toc nesting levels (default 2)', default=2)
     parser.add_argument('-os', '--offset', type=int, metavar='<n>', help='toc page offset; use with infile', default=0)
     parser.add_argument('--sioyek', type=str, metavar='<path>', help='for users of the Sioyek pdf viewer')
-    parser.add_argument('--version', action='version', version='%(prog)s 0.1.6')
+    parser.add_argument('--version', action='version', version='%(prog)s 0.1.7')
 
     args = parser.parse_args()
 
