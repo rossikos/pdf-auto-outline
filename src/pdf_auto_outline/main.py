@@ -160,7 +160,7 @@ def generate_txtfile(toc_entries, txtfile=get_tmpfile()):
                      TABLE OF CONTENTS OUTLINE
     4spaces/lvl text  |  pg#  |  {details dictionary} OR y-coord
 
-       Type 'C' as the first character of this file to cancel
+       Type '\\' as the first character of this file to cancel
     ============================================================
 
     """)
@@ -183,39 +183,55 @@ def generate_txtfile(toc_entries, txtfile=get_tmpfile()):
 
 def parse_txtfile(f, tablevel=2) -> list:
     toc_entries = []
-    if (c := f.read(1)) == 'C':
+    if (c := f.read(1)) == '\\':
         log('Outline not written')
         exit()
     elif c == '=':
         lines = f.readlines()[7:]
-    else: lines = f.read()
+    else: lines = f.readlines()
 
-    for i in lines:
-        i = i.replace('\t', '    '*tablevel)
-        lvl = (len(i) - len(i.lstrip())) // 4 + 1
-        a = i.lstrip().split('  |  ')
-        if len(a) < 3:
-            toc_entries.append(
-                    [lvl, a[0], int(a[1])] 
-            )
-        else:
-            toc_entries.append(
-                    [lvl, a[0], int(a[1]), eval(a[2])]
-            )
+    for idi, i in enumerate(lines):
+        try:
+            i = i.replace('\t', '    '*tablevel)
+            lvl = (len(i) - len(i.lstrip())) // 4 + 1
+            a = i.lstrip().split('  |  ')
+            # print(i)
+            if len(a) < 3:
+                toc_entries.append(
+                        [lvl, a[0], int(a[1])] 
+                )
+            else:
+                toc_entries.append(
+                        [lvl, a[0], int(a[1]), eval(a[2])]
+                )
+        except IndexError as e:
+            log(f'Error parsing line {idi+1}: {i}')
+            exit()
     
     f.close()
 
     return toc_entries
 
-def embed_toc(pdfpath, toc_entries, newfile=''):
+def embed_toc(pdfpath, toc_entries, newfile='', offset=0):
+    if offset != 0:
+        toc_entries = [[a, b, c + offset, *d] for a, b, c, *d in toc_entries]
     doc = pymupdf.open(pdfpath)
     doc.set_toc(toc_entries, collapse=2)
     if newfile:
         doc.save(newfile)
         log(f"toc written to '{newfile}'")
-    else:
+    elif doc.can_save_incrementally():
         doc.saveIncr()
         log(f"toc saved to '{pdfpath}'")
+    else:
+        log('cannot save to original; saving to new file...')
+        new_path = '_new.'.join(pdfpath.split('.'))
+        try: 
+            doc.save(new_path, garbage=4, deflate=True, use_objstms=True)
+        except KeyboardInterrupt as e:
+            log('Cancelled')
+            exit()
+        log(f"toc written to '{new_path}'")
 
 def get_toc_custom(doc) -> list:
     toc_entries = [[*i[:3], i[3].get('to')[1]] for i in doc.get_toc(False)]
@@ -238,6 +254,7 @@ def main():
     parser.add_argument('-se', '--superedit', action='store_true', help='edit pdf toc (more attibutes available)')
     parser.add_argument('-i', '--infile', type=str, metavar='<file>', help='write toc from file to pdf')
     parser.add_argument('-t', '--tablevel', type=int, metavar='<n>', help='tab = n toc nesting levels (default 2)', default=2)
+    parser.add_argument('-os', '--offset', type=int, metavar='<n>', help='toc page offset; use with infile', default=0)
     parser.add_argument('--sioyek', type=str, metavar='<path>', help='for users of the Sioyek pdf viewer')
     parser.add_argument('--version', action='version', version='%(prog)s 0.1.6')
 
@@ -265,11 +282,11 @@ def main():
             f = generate_txtfile(get_toc_custom(doc))
         edit_txtfile(f)
         toc_entries = parse_txtfile(f, args.tablevel)
-        embed_toc(args.filename, toc_entries, args.out)
+        embed_toc(args.filename, toc_entries, args.out, args.offset)
         os.remove(f.name)
     elif args.infile:
         toc_entries = parse_txtfile(open(args.infile, encoding='utf-8'), args.tablevel)
-        embed_toc(args.filename, toc_entries, args.out)
+        embed_toc(args.filename, toc_entries, args.out, args.offset)
     else: # generate toc
         start = perf_counter()
         toc_entries = generate_toc_nnet(args.filename, args.multiprocess)
@@ -278,12 +295,12 @@ def main():
         log(f"finished in {end - start:<4.1f} s")
         toc_entries = align_toc_lvls(toc_entries)
         if args.straight:
-            embed_toc(args.filename, toc_entries, args.out)
+            embed_toc(args.filename, toc_entries, args.out, args.offset)
         else:
             f = generate_txtfile(toc_entries)
             edit_txtfile(f)
             toc_entries = parse_txtfile(f, args.tablevel)
-            embed_toc(args.filename, toc_entries, args.out)
+            embed_toc(args.filename, toc_entries, args.out, args.offset)
             os.remove(f.name)
 
     # if args.sioyek and not args.out:
