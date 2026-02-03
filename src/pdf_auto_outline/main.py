@@ -187,25 +187,26 @@ def parse_txtfile(f, tablevel=2) -> list:
         log('Outline not written')
         exit()
     elif c == '=':
-        lines = f.readlines()[7:]
-    else: lines = f.readlines()
+        for _ in range(7):
+            f.readline()
+    else: 
+        f.seek(0)
 
-    for idi, i in enumerate(lines):
-        try:
-            i = i.replace('\t', '    '*tablevel)
-            lvl = (len(i) - len(i.lstrip())) // 4 + 1
-            a = i.lstrip().split('  |  ')
-            # print(i)
-            if len(a) < 3:
-                toc_entries.append(
-                        [lvl, a[0], int(a[1])] 
-                )
-            else:
-                toc_entries.append(
-                        [lvl, a[0], int(a[1]), eval(a[2])]
-                )
-        except IndexError as e:
-            log(f'Error parsing line {idi+1}: {i}')
+    for ln, i in enumerate(f):
+        i = i.replace('\t', '    '*tablevel)
+        lvl = (len(i) - len(i.lstrip())) // 4 + 1
+        a = i.lstrip().split('  |  ')
+        # print(i)
+        if (l := len(a)) == 2:
+            toc_entries.append(
+                    [lvl, a[0], int(a[1])] 
+            )
+        elif l == 3:
+            toc_entries.append(
+                    [lvl, a[0], int(a[1]), eval(a[2])]
+            )
+        else:
+            log(f'Error parsing line {ln+1}: {i}')
             exit()
     
     f.close()
